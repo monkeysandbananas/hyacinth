@@ -2,39 +2,62 @@
 
 import * as stream from './stream.js';
 import * as module from './module.js';
+import * as process from './process.js';
 import * as argument from './argument.js';
 
 class Shell {
   
   constructor() {
     this._history = [];
+    this._executing = false;
+    this._process = null;
     
     // initialize io
     this._instream = new stream.Stream();
     this._outstream = new stream.Stream();
-    
-    this._instream.attach(this._handler(this));
   }
   
   async setup() {
-    let io = {
-      // stdin: new stream.Reader(this._stdin),
+    let sysio = {
       stdout: new stream.Writer(this._outstream),
       stderr: new stream.Writer(this._outstream),
     };
     
-    return await module.setup(io);
+    return await module.setup(sysio);
   }
   
   // Write input to the shell
-  in(line) {
-    this._instream.write(line);
+  async in(line) {
+    if (this._executing) {
+      this._instream.write(line);
+    } else {
+      await this._handle(line);
+    }
   }
   
-  // Returns a handler function
-  // We lose the class instance when this is called by the stream object
-  _handler(sh) {
-    return (command) => sh._outstream.write(`Executed command: ${command}`);
+  // Handles a command execution
+  async _handle(command) {
+    // debug
+    console.log(`Executing command: ${command}`);
+    
+    let sysio = {
+      stdout: new stream.Writer(this._outstream),
+      stderr: new stream.Writer(this._outstream),
+    };
+    let exec = module.dispatch(command, sysio);
+    if (exec == null) {
+      return;
+    }
+
+    let io = {
+      stdin: new stream.Reader(this._instream),
+      stdout: new stream.Writer(this._outstream),
+      stderr: new stream.Writer(this._outstream),
+    }, env = {}, cmd = {
+      name: command,
+    };
+    this._executing = true;
+    await exec(io, env, cmd);
   }
   
   // Attaches output of the shell (stdout and stderr) to a handle

@@ -3,7 +3,8 @@
 import * as exitcode from '../exitcode.js';
 
 async function testOutput(io, env, cmd) {
-  io.stdout.println("Executed testoutput");
+  io.stdout.println("Executed testOutput");
+  io.stdout.println("output output output output!");
   return exitcode.SUCCESS;
 }
 
@@ -13,6 +14,10 @@ async function testInput(io, env, cmd) {
   return exitcode.SUCCESS;
 }
 
+async function testExitcode(io, env, cmd) {
+  return exitcode.FAILURE;
+}
+
 async function testReadAll(io, env, cmd) {
   io.stdin.readall((line) => {
     io.stdout.println(line);
@@ -20,4 +25,4 @@ async function testReadAll(io, env, cmd) {
   return exitcode.SUCCESS;
 }
 
-export { testOutput, testInput };
+export { testOutput, testInput, testExitcode };

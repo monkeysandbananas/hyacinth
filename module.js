@@ -33,32 +33,33 @@ var modules = {};
 
 var locked = false;
 
-async function setup(io) {
+async function setup(sysio) {
   let results = [];
   for (let path of builtins) {
-    let result = await install(path, io);
+    let result = await install(path, sysio);
     if (result !== exitcode.SUCCESS) {
-      console.log(`Non-zero return value ${result}`)
-      // return result;
+      return result;
     }
   }
   
+  // debug
   console.log("commands:", commands);
   console.log("modules:", modules);
+  
   return exitcode.SUCCESS;
 }
 
 // Full pathname of the module is the name of the module.
-async function install(path, io) {
+async function install(path, sysio) {
   if (locked) {
-    io.stderr.println(`Another installer is running. Please run install synchronously.`);
+    sysio.stderr.println(`Another installer is running. Please run install synchronously.`);
     return exitcode.NOLOCK;
   }
   locked = true;
   
   // check if module is already imported
   if (modules.hasOwnProperty(path)) {
-    io.stderr.println(`Module ${path} is already installed.`);
+    sysio.stderr.println(`Module ${path} is already installed.`);
     return exitcode.DUPLICATE;
   }
   
@@ -67,7 +68,7 @@ async function install(path, io) {
   try {
     module = await import(path);
   } catch (err) {
-    io.stderr.println(`Failed to import builtin module ${path}: ${err}.`);
+    sysio.stderr.println(`Failed to import builtin module ${path}: ${err}.`);
     locked = false;
     return exitcode.NOTFOUND;
   }
@@ -80,24 +81,34 @@ async function install(path, io) {
     }
   }
   if (duplicates.length !== 0) {
-    io.stderr.println(`Failed to install module ${path}, commands ${duplicates} are already installed.`);
+    sysio.stderr.println(`Failed to install module ${path}, commands ${duplicates} are already installed.`);
     locked = false;
     return exitcode.DUPLICATE;
   }
 
   // import them into commands
   modules[path] = [];
+  let added = [];
   for (let command in module) {
-    commands[command] = new Command(path, command, module[command]);
-    modules[path].push(commands[command]);
+    if (typeof module[command] === "function") {
+      commands[command] = new Command(path, command, module[command]);
+      modules[path].push(commands[command]);
+      added.push(command);
+    }
   }
   
+  sysio.stdout.println();
   locked = false;
   return exitcode.SUCCESS;
 }
 
-function execute(command) {
+function dispatch(command, sysio) {
+  if (!commands.hasOwnProperty(command)) {
+    sysio.stderr.println(`Could not find command ${command}.`)
+    return null;
+  }
   
+  return commands[command].executable;
 }
 
-export { setup, execute };
+export { setup, dispatch };

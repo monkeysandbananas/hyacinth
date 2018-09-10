@@ -8,4 +8,6 @@ sh.attach(console.log);
 
 // sets up the shell
 sh.setup()
-  .then(() => sh.in("echo hello"));
+  .then(async function() {
+    await sh.in("testOutput");
+  });
