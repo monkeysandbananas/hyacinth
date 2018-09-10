@@ -1,37 +1,52 @@
 "use strict";
 
 import * as stream from './stream.js';
+import * as module from './module.js';
 import * as argument from './argument.js';
 
 class Shell {
-
+  
   constructor() {
     this._history = [];
-    this._stdin = new stream.Stream();
-    this._stdout = new stream.Stream();
-    // this._stderr = new stream.Stream();
     
-    this._stdin.attach(this._handler(this));
+    // initialize io
+    this._instream = new stream.Stream();
+    this._outstream = new stream.Stream();
+    
+    this._instream.attach(this._handler(this));
   }
   
+  async setup() {
+    let io = {
+      // stdin: new stream.Reader(this._stdin),
+      stdout: new stream.Writer(this._outstream),
+      stderr: new stream.Writer(this._outstream),
+    };
+    
+    return await module.setup(io);
+  }
+  
+  // Write input to the shell
   in(line) {
-    this._stdin.write(line);
+    this._instream.write(line);
   }
   
+  // Returns a handler function
+  // We lose the class instance when this is called by the stream object
   _handler(sh) {
-    return (command) => sh._stdout.write("Executed command: " + command);
+    return (command) => sh._outstream.write(`Executed command: ${command}`);
   }
   
-  // Attaches output of the shell to a handle
+  // Attaches output of the shell (stdout and stderr) to a handle
   // Example: sh.attach(console.log);
   attach(handle) {
     this._history.forEach(m => handle(m));
-    this._stdout.attach(handle);
+    this._outstream.attach(handle);
   }
 
 }
 
-// wrapper of Shell to be ran inside an existing shell.
+// Wrapper of Shell that can be ran inside an existing shell.
 async function sh() {}
 
-export { Shell, sh };
+export { Shell };

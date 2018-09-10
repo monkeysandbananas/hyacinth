@@ -60,7 +60,7 @@ class Stream {
 }
 
 // Wrapper for a stream
-class Stdin {
+class Reader {
   
   constructor(stream) {
     this._stream = stream;
@@ -73,7 +73,7 @@ class Stdin {
 }
 
 // Wrapper for a stream
-class Stdout {
+class Writer {
   
   constructor(stream) {
     this._stream = stream;
@@ -85,4 +85,5 @@ class Stdout {
   
 }
 
-export { Stream, Stdin, Stdout };
+export { Stream, Reader, Writer };
+// hel
